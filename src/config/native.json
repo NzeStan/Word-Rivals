@@ -1,0 +1,16 @@
+{
+  "_readme": "Baked into the Android build (Android can't load these from a link at launch). Replace the links, then run: npm run assets:sync",
+  "name": "Word Rivals",
+  "slug": "word-rivals",
+  "scheme": "wordrivals",
+  "androidPackage": "com.nzestan.wordrivals",
+  "iosBundleId": "com.nzestan.wordrivals",
+  "splashBackground": "#14122B",
+  "iconBackground": "#14122B",
+  "links": {
+    "icon": "https://placehold.co/1024x1024/6C5CE7/FFFFFF/png?text=WR&font=montserrat",
+    "adaptiveForeground": "https://placehold.co/1024x1024/transparent/FFFFFF/png?text=WR&font=montserrat",
+    "adaptiveMonochrome": "https://placehold.co/1024x1024/transparent/000000/png?text=WR&font=montserrat",
+    "splash": "https://placehold.co/600x600/transparent/FFFFFF/png?text=Word+Rivals&font=montserrat"
+  }
+}
