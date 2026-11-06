@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Linking } from 'react-native';
 import { ApiError } from '@/api/http';
+import { OrDivider, SocialButtons } from '@/auth/SocialButtons';
 import { LINKS } from '@/config/links';
 import { useSession } from '@/state/session';
 import { useTheme } from '@/theme';
@@ -36,6 +37,8 @@ export default function Register() {
         <Txt variant="heading" accessibilityRole="header">
           Create your account
         </Txt>
+        <SocialButtons onError={(message) => setError(new ApiError('SOCIAL', message, 400))} />
+        <OrDivider />
         <Field
           label="Username"
           value={username}

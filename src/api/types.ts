@@ -120,6 +120,7 @@ export type Match = {
   participants: Participant[];
   my_seat: number | null;
   server_time: string;
+  tournament?: MatchTournament | null;
 };
 
 export type MatchListItem = {
@@ -175,4 +176,156 @@ export type EventEnvelope = {
   type: string;
   ts: string;
   data: any;
+};
+
+// ---- tournaments ------------------------------------------------------------
+
+export type TournamentStatus = 'draft' | 'registration' | 'running' | 'completed' | 'cancelled';
+
+export type Entry = {
+  user_id: string | null;
+  display_name: string;
+  seed: number | null;
+  status: 'registered' | 'active' | 'eliminated' | 'finished' | 'withdrawn' | 'disqualified';
+  external_ref: string;
+  points: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  byes: number;
+  tiebreak: number;
+  final_rank: number | null;
+  rating: number;
+};
+
+export type Standing = Entry & { position: number };
+
+export type TournamentGame = {
+  number: number;
+  match_id: string;
+  status: MatchStatus;
+  start_word: string;
+  final_word: string;
+  moves: number;
+  end_reason: string;
+  winner_user_id: string | null;
+  result: string | null;
+  check_in_deadline: string | null;
+};
+
+export type Pairing = {
+  position: number;
+  status: 'running' | 'completed' | 'pending';
+  a: Entry | null;
+  b: Entry | null;
+  a_wins?: number;
+  b_wins?: number;
+  draws?: number;
+  winner_user_id?: string | null;
+  reason?: string | null;
+  games: TournamentGame[];
+};
+
+export type Round = { number: number; name: string; status: string; pairings: Pairing[] };
+
+export type Tournament = {
+  id: string;
+  code: string;
+  name: string;
+  organizer: { id: string; name: string; slug: string; website: string; logo_url: string };
+  mode: string;
+  mode_name: string;
+  format: 'single_elimination' | 'round_robin' | 'swiss';
+  format_name: string;
+  best_of: number;
+  status: TournamentStatus;
+  visibility: 'public' | 'unlisted';
+  description: string;
+  rules_text: string;
+  prizes_text: string;
+  banner_url: string;
+  min_entrants: number;
+  max_entrants: number;
+  registration_opens_at: string | null;
+  registration_closes_at: string | null;
+  starts_at: string | null;
+  check_in_seconds: number;
+  current_round: number;
+  total_rounds: number;
+  started_at: string | null;
+  finished_at: string | null;
+  cancel_reason: string;
+  winner: Entry | null;
+  join_url: string;
+  entrants: number;
+  round_name?: string | null;
+  my_entry?: Entry | null;
+  my_match?: { match_id: string; status: MatchStatus; check_in_deadline: string | null } | null;
+};
+
+export type MatchTournament = {
+  id: string;
+  name: string;
+  round: number;
+  round_name: string;
+  game: number;
+  best_of: number;
+  check_in_deadline: string | null;
+  ready_user_ids: string[];
+  series: { a_wins: number; b_wins: number; draws: number };
+};
+
+// ---- social, leaderboards, notifications --------------------------------------
+
+export type LeaderboardRow = {
+  rank: number;
+  user_id: string;
+  display_name: string;
+  rating: number;
+  games: number;
+  wins: number;
+  level?: number;
+};
+
+export type Leaderboard = Page<LeaderboardRow> & { me?: { rank: number; rating: number; games: number } };
+
+export type Friend = { user_id: string; display_name: string; level: number; since: string };
+
+export type FriendRequest = {
+  id: number;
+  status: string;
+  created_at: string;
+  from_user: { user_id: string; display_name: string };
+  to_user: { user_id: string; display_name: string };
+};
+
+export type PlayerPublic = {
+  user_id: string;
+  display_name: string;
+  level: number;
+  country?: string;
+  stats?: { matches_played: number; wins: number; best_win_streak: number };
+  ratings?: Rating[];
+  is_friend?: boolean;
+};
+
+export type AppNotification = {
+  id: number;
+  kind: string;
+  title: string;
+  body: string;
+  data: Record<string, string>;
+  read_at: string | null;
+  created_at: string;
+};
+
+export type NotificationPrefs = {
+  your_turn: boolean;
+  match_results: boolean;
+  friend_requests: boolean;
+  challenges: boolean;
+  daily_reminder: boolean;
+  rewards: boolean;
+  tournaments: boolean;
+  marketing: boolean;
 };

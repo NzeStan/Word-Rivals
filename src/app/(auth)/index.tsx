@@ -1,16 +1,19 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import { SocialButtons } from '@/auth/SocialButtons';
 import { ASSETS } from '@/config/assets';
 import { TAGLINE } from '@/config/strings';
 import { Tile } from '@/game/components/Tile';
 import { useGameName } from '@/state/queries';
+import { useState } from 'react';
 import { useTheme } from '@/theme';
 import { Btn, RemoteImage, Screen, Txt } from '@/ui/primitives';
 
 export default function Welcome() {
   const t = useTheme();
   const name = useGameName();
+  const [error, setError] = useState<string>();
   return (
     <Screen style={{ justifyContent: 'space-between' }}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: t.spacing.xl }}>
@@ -36,7 +39,13 @@ export default function Welcome() {
         </Animated.View>
       </View>
       <View style={{ gap: t.spacing.md }}>
-        <Btn label="Create account" onPress={() => router.push('/(auth)/register')} />
+        <SocialButtons onError={setError} />
+        {error ? (
+          <Txt center color={t.colors.danger}>
+            {error}
+          </Txt>
+        ) : null}
+        <Btn label="Create account with email" onPress={() => router.push('/(auth)/register')} />
         <Btn label="I already have an account" variant="secondary" onPress={() => router.push('/(auth)/login')} />
       </View>
     </Screen>

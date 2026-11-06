@@ -1,5 +1,9 @@
+import { existsSync } from 'node:fs';
 import type { ExpoConfig } from 'expo/config';
 import native from './src/config/native.json';
+
+// Firebase config for Android push. Download it from the Firebase console (see README) and drop it here.
+const googleServicesFile = existsSync('./google-services.json') ? './google-services.json' : undefined;
 
 const config: ExpoConfig = {
   name: native.name,
@@ -17,14 +21,25 @@ const config: ExpoConfig = {
       monochromeImage: './assets/native/adaptive-monochrome.png',
     },
     predictiveBackGestureEnabled: false,
+    googleServicesFile,
   },
   ios: { bundleIdentifier: native.iosBundleId, supportsTablet: false },
+  extra: native.easProjectId ? { eas: { projectId: native.easProjectId } } : {},
   plugins: [
     'expo-router',
     'expo-image',
     'expo-secure-store',
     'expo-font',
     'expo-audio',
+    'expo-web-browser',
+    [
+      'expo-notifications',
+      {
+        icon: './assets/native/notification-icon.png',
+        color: native.notificationColor,
+        defaultChannel: 'default',
+      },
+    ],
     [
       'expo-splash-screen',
       {

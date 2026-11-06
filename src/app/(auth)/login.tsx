@@ -2,6 +2,7 @@ import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView } from 'react-native';
 import { ApiError } from '@/api/http';
+import { OrDivider, SocialButtons } from '@/auth/SocialButtons';
 import { useSession } from '@/state/session';
 import { useTheme } from '@/theme';
 import { Btn, Field, Screen, Txt } from '@/ui/primitives';
@@ -32,6 +33,8 @@ export default function Login() {
         <Txt variant="heading" accessibilityRole="header">
           Welcome back
         </Txt>
+        <SocialButtons onError={setError} />
+        <OrDivider />
         <Field
           label="Username"
           value={username}

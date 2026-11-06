@@ -22,11 +22,24 @@ function handle(event: EventEnvelope) {
     case 'achievement.unlocked':
       toast(`Achievement unlocked: ${d.name}`, 'success');
       break;
+    case 'notification.created': {
+      void queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      if (d.kind === 'friend_request') void queryClient.invalidateQueries({ queryKey: ['friends'] });
+      if (d.kind === 'tournament') {
+        void queryClient.invalidateQueries({ queryKey: ['tournaments'] });
+        void queryClient.invalidateQueries({ queryKey: ['tournament'] });
+      }
+      // Turn and result news already shows on the board; everything else gets a toast.
+      if (d.title && !['your_turn', 'match_result', 'reward', 'achievement'].includes(d.kind)) toast(d.title);
+      break;
+    }
     case 'match.found':
     case 'match.completed':
       void queryClient.invalidateQueries({ queryKey: ['matches'] });
       void queryClient.invalidateQueries({ queryKey: ['stats'] });
       void queryClient.invalidateQueries({ queryKey: ['daily'] });
+      void queryClient.invalidateQueries({ queryKey: ['tournament'] });
+      void queryClient.invalidateQueries({ queryKey: ['tournaments'] });
       break;
   }
 }

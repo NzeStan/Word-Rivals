@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Modal, Pressable, RefreshControl, ScrollView, View } from 'react-native';
@@ -9,7 +10,9 @@ import { FEATURED_MODE } from '@/config/app';
 import { ASSETS } from '@/config/assets';
 import { MatchRow } from '@/game/components/ActiveMatchRow';
 import { ModeSheet } from '@/game/components/ModeSheet';
-import { useActiveMatches, useDaily, useGameName, useMe, useMeta } from '@/state/queries';
+import { enablePush, pushPermission, pushSupported } from '@/push';
+import { usePrefs } from '@/state/prefs';
+import { useActiveMatches, useDaily, useGameName, useMe, useMeta, useMyTournaments, useUnreadCount } from '@/state/queries';
 import { useSession } from '@/state/session';
 import { toast } from '@/state/toast';
 import { useTheme } from '@/theme';
@@ -28,11 +31,29 @@ export default function Home() {
   const [joining, setJoining] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const pendingInvite = useSession((s) => s.pendingInvite);
+  const pendingPath = useSession((s) => s.pendingPath);
+  const unread = useUnreadCount();
+  const tournaments = useMyTournaments();
+  const pushDismissed = usePrefs((s) => s.pushPromptDismissed);
+  const [askPush, setAskPush] = useState(false);
+
+  useEffect(() => {
+    if (!pushSupported() || pushDismissed) return;
+    void pushPermission().then((p) => setAskPush(p === 'undetermined'));
+  }, [pushDismissed]);
+
+  useEffect(() => {
+    if (!pendingPath) return;
+    useSession.getState().setPendingPath(null);
+    router.push(pendingPath as never);
+  }, [pendingPath]);
 
   useFocusEffect(
     useCallback(() => {
       void active.refetch();
       void daily.refetch();
+      void unread.refetch();
+      void tournaments.refetch();
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
@@ -45,7 +66,7 @@ export default function Home() {
 
   const refresh = async () => {
     setRefreshing(true);
-    await Promise.allSettled([meta.refetch(), active.refetch(), daily.refetch(), me.refetch()]);
+    await Promise.allSettled([meta.refetch(), active.refetch(), daily.refetch(), me.refetch(), tournaments.refetch()]);
     setRefreshing(false);
   };
 
@@ -67,9 +88,12 @@ export default function Home() {
   const modes = meta.data.modes.filter(
     (m) => !HIDDEN_FROM_GRID.has(m.key) && (m.key !== 'arena' || meta.data.feature_flags.arena),
   );
+  const liveTournament = (tournaments.data ?? []).find(
+    (x) => x.status === 'running' && x.my_entry && ['active'].includes(x.my_entry.status),
+  );
   const featured = meta.data.modes.find((m) => m.key === FEATURED_MODE && m.allow_matchmaking);
   const practice = meta.data.modes.find((m) => m.key === 'practice');
-  const matches = active.data?.results ?? [];
+  const matches = (active.data?.results ?? []).filter((m) => !liveTournament?.my_match || m.id !== liveTournament.my_match.match_id);
 
   const openDaily = async () => {
     try {
@@ -97,7 +121,86 @@ export default function Home() {
               {me.data ? `${me.data.display_name} · Level ${me.data.level}` : ' '}
             </Txt>
           </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={unread.data ? `Notifications, ${unread.data} unread` : 'Notifications'}
+            hitSlop={8}
+            onPress={() => router.push('/notifications')}
+            style={{ padding: t.spacing.xs }}
+          >
+            <Ionicons name="notifications-outline" size={26} color={t.colors.text} />
+            {unread.data ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  minWidth: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  paddingHorizontal: 4,
+                  backgroundColor: t.colors.danger,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Txt variant="caption" color={t.colors.textOnPrimary} style={{ fontSize: 11, lineHeight: 14, fontWeight: '800' }}>
+                  {unread.data > 9 ? '9+' : unread.data}
+                </Txt>
+              </View>
+            ) : null}
+          </Pressable>
         </View>
+
+        {askPush ? (
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.md }}>
+            <RemoteImage uri={ASSETS.illustrations.notifications} label="" style={{ width: 56, height: 56, borderRadius: t.radius.md }} />
+            <View style={{ flex: 1, gap: t.spacing.xs }}>
+              <Txt variant="bodyBold">Never miss your turn</Txt>
+              <Txt variant="small" color={t.colors.textMuted}>
+                Get a nudge when it’s your move or a friend challenges you.
+              </Txt>
+              <View style={{ flexDirection: 'row', gap: t.spacing.sm, marginTop: t.spacing.xs }}>
+                <Btn
+                  small
+                  label="Turn on"
+                  onPress={async () => {
+                    await enablePush();
+                    setAskPush(false);
+                    usePrefs.getState().set({ pushPromptDismissed: true });
+                  }}
+                />
+                <Btn small variant="ghost" label="Not now" onPress={() => usePrefs.getState().set({ pushPromptDismissed: true })} />
+              </View>
+            </View>
+          </Card>
+        ) : null}
+
+        {liveTournament ? (
+          <Card
+            label={`${liveTournament.name}: ${liveTournament.my_match?.status === 'waiting' ? 'check in now' : 'open'}`}
+            onPress={() =>
+              router.push(
+                liveTournament.my_match ? `/match/${liveTournament.my_match.match_id}` : `/tournament/${liveTournament.id}`,
+              )
+            }
+            style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.md, borderColor: t.colors.primary, borderWidth: 2 }}
+          >
+            <Ionicons name="trophy" size={28} color={t.colors.warning} />
+            <View style={{ flex: 1 }}>
+              <Txt variant="bodyBold" numberOfLines={1}>
+                {liveTournament.name}
+              </Txt>
+              <Txt variant="small" color={t.colors.textMuted}>
+                {liveTournament.my_match?.status === 'waiting'
+                  ? 'Your match is ready. Check in now!'
+                  : liveTournament.my_match
+                    ? 'Your match is on'
+                    : (liveTournament.round_name ?? 'In progress')}
+              </Txt>
+            </View>
+          </Card>
+        ) : null}
 
         {featured ? (
           <Card

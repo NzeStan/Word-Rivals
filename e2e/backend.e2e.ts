@@ -4,9 +4,10 @@
  * Plays real matches against a running backend through the app's own API client,
  * socket and reducer. Run the backend first (docker compose up), then: npm run test:e2e
  */
-import { Auth, DailyChallenge, Matches, Matchmaking, Profile } from '@/api/endpoints';
+import { Auth, DailyChallenge, Friends, Leaderboards, Matches, Matchmaking, Notifications, Profile, Tournaments } from '@/api/endpoints';
+import { API_BASE } from '@/config/app';
 import { ApiError, freshAccessToken, refreshAccessToken } from '@/api/http';
-import { currentTokens, saveTokens } from '@/api/tokens';
+import { clearTokens, currentTokens, saveTokens } from '@/api/tokens';
 import type { Match, Tokens } from '@/api/types';
 import { initialView, matchReducer, type MatchView } from '@/game/reducer';
 import { GameSocket } from '@/realtime/socket';
@@ -262,5 +263,109 @@ describe('against the real backend', () => {
     expect(typeof stats.distinct_words).toBe('number');
     await Profile.deleteAccount();
     await expect(Profile.me()).rejects.toBeInstanceOf(ApiError);
+    // Refreshing the deleted account's token is a clean sign-out, not a server error.
+    expect(await refreshAccessToken()).toBeNull();
+  });
+
+  it('lists sign-in providers', async () => {
+    const { providers } = await Auth.socialProviders();
+    expect(Array.isArray(providers)).toBe(true);
+  });
+
+  it('makes friends, challenges one and delivers the notification', async () => {
+    const alice = await newPlayer();
+    const bob = await newPlayer();
+    await as(bob);
+    const bobMe = await Profile.me();
+    await as(alice);
+    const aliceMe = await Profile.me();
+    await Friends.request(bobMe.user_id);
+    await as(bob);
+    const [req] = await Friends.requests();
+    expect(req.from_user.user_id).toBe(aliceMe.user_id);
+    await Friends.respond(req.id, 'accept');
+    expect((await Friends.list()).map((f) => f.user_id)).toEqual([aliceMe.user_id]);
+
+    await as(alice);
+    const match = await Matches.challenge('classic', [bobMe.user_id]);
+    expect(match.invite_code).toBeTruthy();
+    await as(bob);
+    const deadline = Date.now() + 15000;
+    let challenge;
+    while (!challenge && Date.now() < deadline) {
+      challenge = (await Notifications.list()).results.find((n) => n.kind === 'challenge');
+      if (!challenge) await new Promise((r) => setTimeout(r, 500));
+    }
+    expect(challenge?.data.invite_code).toBe(match.invite_code);
+    expect((await Notifications.unread()).count).toBeGreaterThan(0);
+    await Notifications.markAllRead();
+    expect((await Notifications.unread()).count).toBe(0);
+    const joined = await Matches.join(challenge!.data.invite_code);
+    expect(joined.status).toBe('active');
+  });
+
+  it('runs a tournament from an organizer key to a champion', async () => {
+    const owner = await newPlayer();
+    const res = await fetch(`${API_BASE}/organizers/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${owner.access}` },
+      body: JSON.stringify({ name: `E2E League ${unique()}` }),
+    });
+    expect(res.status).toBe(201);
+    const { api_key } = await res.json();
+    const org = (path: string, body?: object) =>
+      fetch(`${API_BASE}/org/${path}`, {
+        method: body ? 'POST' : 'GET',
+        headers: { 'Content-Type': 'application/json', Authorization: `Api-Key ${api_key}` },
+        body: body ? JSON.stringify(body) : undefined,
+      }).then(async (r) => ({ status: r.status, data: await r.json() }));
+
+    const created = await org('tournaments/', { name: 'E2E Cup', mode: 'classic', max_entrants: 4, publish: true, check_in_seconds: 120 });
+    expect(created.status).toBe(201);
+    const id = created.data.id as string;
+
+    const a = await newPlayer();
+    const b = await newPlayer();
+    for (const p of [a, b]) {
+      await as(p);
+      const joined = await Tournaments.join(id);
+      expect(joined.my_entry?.status).toBe('registered');
+    }
+    await clearTokens();
+    expect((await Tournaments.list('registration')).some((x) => x.id === id)).toBe(true);
+
+    expect((await org(`tournaments/${id}/start/`, {})).data.status).toBe('running');
+    await as(a);
+    const mine = await Tournaments.get(id);
+    expect(mine.round_name).toBe('Final');
+    const matchId = mine.my_match!.match_id;
+    let m = await Matches.get(matchId);
+    expect(m.tournament?.name).toBe('E2E Cup');
+    expect(m.status).toBe('waiting');
+    await Matches.ready(matchId);
+    await as(b);
+    m = await Matches.ready(matchId);
+    expect(m.status).toBe('active');
+    await Matches.resign(matchId);
+
+    await clearTokens();
+    const deadline = Date.now() + 20000;
+    let done = await Tournaments.get(id);
+    while (done.status !== 'completed' && Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 500));
+      done = await Tournaments.get(id);
+    }
+    expect(done.status).toBe('completed');
+    const standings = await Tournaments.standings(id);
+    expect(standings[0].final_rank).toBe(1);
+    expect(done.winner?.user_id).toBe(standings[0].user_id);
+    const rounds = await Tournaments.rounds(id);
+    expect(rounds[0].pairings[0].games[0].match_id).toBe(matchId);
+  });
+
+  it('serves leaderboards for ranked modes', async () => {
+    await as(await newPlayer());
+    const board = await Leaderboards.get('ranked', null);
+    expect(Array.isArray(board.results)).toBe(true);
   });
 });

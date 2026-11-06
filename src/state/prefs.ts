@@ -7,7 +7,7 @@ import { useThemeStore } from '@/theme';
 const KEY = 'word-rivals.prefs';
 const persistent = Platform.OS === 'android' || Platform.OS === 'ios';
 
-type Prefs = { palette: PaletteName; sound: boolean; haptics: boolean };
+type Prefs = { palette: PaletteName; sound: boolean; haptics: boolean; pushPromptDismissed: boolean };
 
 type PrefsState = Prefs & {
   load: () => Promise<void>;
@@ -18,6 +18,7 @@ export const usePrefs = create<PrefsState>((set, get) => ({
   palette: activePalette,
   sound: true,
   haptics: true,
+  pushPromptDismissed: false,
   load: async () => {
     if (!persistent) return;
     try {
@@ -36,8 +37,8 @@ export const usePrefs = create<PrefsState>((set, get) => ({
     set(patch);
     if (patch.palette) useThemeStore.getState().setName(patch.palette);
     if (persistent) {
-      const { palette, sound, haptics } = get();
-      SecureStore.setItemAsync(KEY, JSON.stringify({ palette, sound, haptics })).catch(() => {});
+      const { palette, sound, haptics, pushPromptDismissed } = get();
+      SecureStore.setItemAsync(KEY, JSON.stringify({ palette, sound, haptics, pushPromptDismissed })).catch(() => {});
     }
   },
 }));

@@ -1,4 +1,4 @@
-// Downloads the app icon and splash links from src/config/native.json into assets/native/.
+// Downloads the app icon, splash and notification icon links from src/config/native.json into assets/native/.
 // Run after changing those links: npm run assets:sync
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
@@ -9,6 +9,7 @@ const files = {
   adaptiveForeground: 'adaptive-foreground.png',
   adaptiveMonochrome: 'adaptive-monochrome.png',
   splash: 'splash.png',
+  notificationIcon: 'notification-icon.png',
 };
 
 await mkdir(out, { recursive: true });

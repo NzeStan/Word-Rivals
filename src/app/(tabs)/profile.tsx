@@ -1,4 +1,6 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useMutation } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import Constants from 'expo-constants';
 import { useState } from 'react';
 import { Linking, Pressable, Switch, View } from 'react-native';
@@ -175,6 +177,14 @@ export default function ProfileTab() {
         </View>
         <ToggleRow label="Sound" value={prefs.sound} onChange={(sound) => prefs.set({ sound })} />
         <ToggleRow label="Vibration" value={prefs.haptics} onChange={(haptics) => prefs.set({ haptics })} />
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push('/notification-settings')}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: t.spacing.xs }}
+        >
+          <Txt>Notifications</Txt>
+          <Ionicons name="chevron-forward" size={20} color={t.colors.textMuted} />
+        </Pressable>
       </Card>
 
       <Card style={{ gap: 0 }}>

@@ -2,7 +2,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 
 const dir = new URL('../src/config/', import.meta.url);
-const markers = [/placehold\.co/, /\bph\(/, /example\.com/, /:\s*''\s*,/];
+const markers = [/placehold\.co/, /\bph\(/, /example\.com/, /:\s*''\s*,/, /"easProjectId":\s*""/];
 let total = 0;
 
 for (const file of await readdir(dir)) {

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ASSETS } from '@/config/assets';
+import { refreshPushRegistration, useNotificationTaps } from '@/push';
 import { useUserEvents } from '@/realtime/useUserEvents';
 import { usePrefs } from '@/state/prefs';
 import { queryClient, useSession } from '@/state/session';
@@ -31,6 +32,11 @@ function Navigator() {
   const status = useSession((s) => s.status);
   const signedIn = status === 'signedIn';
   useUserEvents();
+  useNotificationTaps(signedIn);
+
+  useEffect(() => {
+    if (signedIn) void refreshPushRegistration();
+  }, [signedIn]);
 
   useEffect(() => {
     void SystemUI.setBackgroundColorAsync(t.colors.background).catch(() => {});
@@ -44,11 +50,17 @@ function Navigator() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="match/[id]" />
           <Stack.Screen name="matchmaking" />
+          <Stack.Screen name="player/[id]" />
+          <Stack.Screen name="find-players" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="notification-settings" />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
         <Stack.Screen name="join/[code]" />
+        <Stack.Screen name="tournament/[id]" />
+        <Stack.Screen name="auth" />
         <Stack.Screen name="reset-password" />
         <Stack.Screen name="verify-email" />
       </Stack>

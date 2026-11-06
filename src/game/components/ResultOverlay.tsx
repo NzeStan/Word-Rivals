@@ -83,7 +83,9 @@ export function ResultOverlay({ match, moves, onDismiss }: { match: Match; moves
           </Txt>
         ) : null}
         <View style={{ alignSelf: 'stretch', gap: t.spacing.sm, marginTop: t.spacing.sm }}>
-          {!aborted && me && !isDaily ? (
+          {match.tournament ? (
+            <Btn label="Back to the tournament" onPress={() => router.replace(`/tournament/${match.tournament!.id}`)} />
+          ) : !aborted && me && !isDaily ? (
             <Btn label={isPractice ? 'Play again' : 'Rematch'} loading={busy} onPress={playAgain} />
           ) : null}
           <Btn label="See the match" variant="secondary" onPress={onDismiss} />

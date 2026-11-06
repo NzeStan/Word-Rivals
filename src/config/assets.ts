@@ -32,7 +32,15 @@ export const ASSETS = {
     searching: ph(600, 600, 'Searching', '3A3570'),
     invite: ph(600, 600, 'Invite a friend', '3A3570'),
     emptyMatches: ph(600, 400, 'No matches yet', '2A2650'),
+    emptyFriends: ph(600, 400, 'Find your rivals', '2A2650'),
+    emptyNotifications: ph(600, 400, 'All caught up', '2A2650'),
+    emptyTournaments: ph(600, 400, 'No tournaments yet', '2A2650'),
+    trophy: ph(400, 400, 'Champion', 'F9A825', '14122B'),
+    notifications: ph(400, 400, 'Stay in the game', '6C5CE7'),
   },
+
+  /** Shown when a tournament has no banner of its own. */
+  tournamentBanner: ph(1080, 480, 'Tournament', '8E24AA'),
 
   /** One card image per game mode. Keys match the backend's mode keys. */
   modes: {

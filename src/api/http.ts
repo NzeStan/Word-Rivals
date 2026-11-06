@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import { API_BASE } from '@/config/app';
 import { ERROR_MESSAGES } from '@/config/strings';
 import { clearTokens, currentTokens, saveTokens, secondsUntilExpiry } from './tokens';
@@ -25,11 +26,15 @@ export function setSessionExpiredHandler(handler: () => void) {
 
 const TIMEOUT_MS = 15000;
 
+const WEB = Platform.OS === 'web';
+
 async function rawFetch(path: string, init: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    return await fetch(`${API_BASE}/${path}`, { ...init, signal: controller.signal });
+    // Game state goes stale in seconds, so browsers must never answer from their HTTP cache.
+    // (Native has no HTTP cache here, and React Native's fetch would add a cache-busting query instead.)
+    return await fetch(`${API_BASE}/${path}`, { ...(WEB ? { cache: 'no-store' as const } : {}), ...init, signal: controller.signal });
   } catch {
     throw new ApiError('NETWORK', 'Network error', 0);
   } finally {

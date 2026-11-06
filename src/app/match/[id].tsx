@@ -7,6 +7,7 @@ import { Matches } from '@/api/endpoints';
 import type { ApiError } from '@/api/http';
 import { ERROR_MESSAGES, REACTION_EMOJI } from '@/config/strings';
 import { Board } from '@/game/components/Board';
+import { CheckIn } from '@/game/components/CheckIn';
 import { ClockBar } from '@/game/components/ClockBar';
 import { GameKeyboard } from '@/game/components/Keyboard';
 import { Lobby } from '@/game/components/Lobby';
@@ -105,6 +106,9 @@ export default function MatchScreen() {
     );
   }
 
+  if (match.status === 'waiting' && match.tournament) {
+    return <CheckIn match={match} clockOffsetMs={clockOffsetMs} onChanged={() => void session.refetch().catch(() => {})} />;
+  }
   if (match.status === 'waiting') {
     return <Lobby match={match} onChanged={() => void session.refetch().catch(() => {})} />;
   }

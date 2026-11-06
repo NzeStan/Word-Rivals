@@ -55,6 +55,7 @@ function applyEvent(view: MatchView, event: EventEnvelope, now: number): MatchVi
       };
     case 'player.joined':
     case 'player.left':
+    case 'player.ready':
       return { ...view, needsRefetch: true };
     case 'turn.started': {
       const next = patchSeat(match, d.seat, { power_left: d.power_left });
